@@ -24,6 +24,7 @@
 @property (nonatomic, strong) JotDrawView *drawView;
 @property (nonatomic, strong) JotTextEditView *textEditView;
 @property (nonatomic, strong) JotTextView *textView;
+@property (nonatomic, strong) NSUndoManager *jotUndoManager;
 
 @end
 
@@ -33,7 +34,9 @@
 {
     if ((self = [super init])) {
         
+        self.jotUndoManager = [[NSUndoManager alloc] init];
         _drawView = [JotDrawView new];
+        _drawView.jotUndoManager = self.jotUndoManager;
         _textEditView = [JotTextEditView new];
         _textEditView.delegate = self;
         _textView = [JotTextView new];
@@ -66,6 +69,7 @@
         
         _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapGesture:)];
         self.tapRecognizer.delegate = self;
+        
     }
     
     return self;
@@ -245,6 +249,21 @@
 
 #pragma mark - Undo
 
+- (NSUndoManager *)undoManager
+{
+    return self.jotUndoManager;
+}
+
+- (void)undo
+{
+    [self.undoManager undo];
+}
+
+- (void)redo
+{
+    [self.undoManager redo];
+}
+
 - (void)clearAll
 {
     [self clearDrawing];
@@ -254,6 +273,7 @@
 - (void)clearDrawing
 {
     [self.drawView clearDrawing];
+    [self.undoManager removeAllActions];
 }
 
 - (void)clearText

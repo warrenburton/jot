@@ -43,6 +43,11 @@
 @property (nonatomic, strong) UIColor *strokeColor;
 
 /**
+ * Sets undo manager for view. If not set uses default window undoManager instance.
+ */
+@property (nonatomic, strong) NSUndoManager *jotUndoManager;
+
+/**
  *  Clears all paths from the drawing, giving a blank slate.
  *
  *  @note Call clearDrawing or clearAll in JotViewController

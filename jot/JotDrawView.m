@@ -51,6 +51,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
         _lastWidth = _strokeWidth;
         
         self.userInteractionEnabled = NO;
+
     }
     
     return self;
@@ -58,11 +59,24 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 
 #pragma mark - Undo
 
+- (NSUndoManager *)undoManager
+{
+    if (self.jotUndoManager)
+    {
+        return self.jotUndoManager;
+    }
+    else
+    {
+        return self.window.undoManager;
+    }
+}
+
 - (void)clearDrawing
 {
     self.cachedImage = nil;
     
     [self.pathsArray removeAllObjects];
+    [self.undoManager removeAllActionsWithTarget:self];
     
     self.bezierPath = nil;
     self.pointsCounter = 0;
@@ -94,6 +108,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 
 - (void)drawTouchBeganAtPoint:(CGPoint)touchPoint
 {
+    [self.undoManager beginUndoGrouping];
     self.lastVelocity = self.initialVelocity;
     self.lastWidth = self.strokeWidth;
     self.pointsCounter = 0;
@@ -147,7 +162,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 - (void)drawTouchEnded
 {
     [self drawBitmap];
-    
+    [self.undoManager endUndoGrouping];
     self.lastVelocity = self.initialVelocity;
     self.lastWidth = self.strokeWidth;
 }
@@ -169,7 +184,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
         JotTouchPoint *touchPoint = [self.pointsArray firstObject];
         touchPoint.strokeColor = self.strokeColor;
         touchPoint.strokeWidth = 1.5f * [self strokeWidthForVelocity:1.f];
-        [self.pathsArray addObject:touchPoint];
+        [self addJotObjectToStack:touchPoint];
         [touchPoint.strokeColor setFill];
         [JotTouchBezier jotDrawBezierPoint:[touchPoint CGPointValue]
                                  withWidth:touchPoint.strokeWidth];
@@ -182,9 +197,14 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 
 - (void)drawRect:(CGRect)rect
 {
+    if (!self.cachedImage)
+    {
+        self.cachedImage = [self renderDrawingWithSize:self.bounds.size];
+    }
+    
     [self.cachedImage drawInRect:rect];
-
-    [self.bezierPath jotDrawBezier];
+    //only draw if it currently exists to avoid side-effect creation of new path + undo step
+    if (_bezierPath) [self.bezierPath jotDrawBezier];
 }
 
 - (CGFloat)strokeWidthForVelocity:(CGFloat)velocity
@@ -202,11 +222,34 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 {
     if (!_bezierPath) {
         _bezierPath = [JotTouchBezier withColor:self.strokeColor];
-        [self.pathsArray addObject:_bezierPath];
+        [self addJotObjectToStack:_bezierPath];
         _bezierPath.constantWidth = self.constantStrokeWidth;
     }
     
     return _bezierPath;
+}
+
+- (void)addJotObjectToStack:(id)jotObject
+{
+    
+    [self.undoManager registerUndoWithTarget:self handler:^(id  _Nonnull target) {
+        [self removeJotObjectFromStack:jotObject];
+        self.cachedImage = nil;
+        [self setNeedsDisplay];
+    }];
+    [self.undoManager setActionName:@"Undo Stroke"];
+    [self.pathsArray addObject:jotObject];
+}
+
+- (void)removeJotObjectFromStack:(id)jotObject
+{
+    [self.undoManager registerUndoWithTarget:self handler:^(id  _Nonnull target) {
+        [self addJotObjectToStack:jotObject];
+        self.cachedImage = nil;
+        [self setNeedsDisplay];
+    }];
+    [self.undoManager setActionName:@"Redo Stroke"];
+    [self.pathsArray removeObject:jotObject];
 }
 
 #pragma mark - Image Rendering

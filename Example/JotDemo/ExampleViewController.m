@@ -22,6 +22,8 @@ NSString * const kSaveImageName = @"";
 @property (nonatomic, strong) UIButton *saveButton;
 @property (nonatomic, strong) UIButton *clearButton;
 @property (nonatomic, strong) UIButton *toggleDrawingButton;
+@property (nonatomic, strong) UIButton *undoButton;
+@property (nonatomic, strong) UIButton *redoButton;
 
 @end
 
@@ -70,9 +72,32 @@ NSString * const kSaveImageName = @"";
         [self.toggleDrawingButton addTarget:self
                                      action:@selector(toggleDrawingButtonAction)
                            forControlEvents:UIControlEventTouchUpInside];
+        
+        [self configureUndoUI];
     }
     
     return self;
+}
+
+- (void)configureUndoUI
+{
+    _undoButton = [UIButton new];
+    self.undoButton.titleLabel.font = [UIFont fontWithName:@"FontAwesome" size:24.f];
+    [self.undoButton setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+    [self.undoButton setTitleColor:[UIColor lightGrayColor] forState:UIControlStateHighlighted];
+    [self.undoButton setTitle:@"<-" forState:UIControlStateNormal];
+    [self.undoButton addTarget:self
+                         action:@selector(undoButtonAction)
+               forControlEvents:UIControlEventTouchUpInside];
+    
+    _redoButton = [UIButton new];
+    self.redoButton.titleLabel.font = [UIFont fontWithName:@"FontAwesome" size:24.f];
+    [self.redoButton setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+    [self.redoButton setTitleColor:[UIColor lightGrayColor] forState:UIControlStateHighlighted];
+    [self.redoButton setTitle:@"->" forState:UIControlStateNormal];
+    [self.redoButton addTarget:self
+                        action:@selector(redoButtonAction)
+              forControlEvents:UIControlEventTouchUpInside];
 }
 
 - (void)viewDidLoad
@@ -102,6 +127,20 @@ NSString * const kSaveImageName = @"";
         make.top.equalTo(self.view).offset(4.f);
     }];
     
+    [self.view addSubview:self.undoButton];
+    [self.undoButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.height.and.width.equalTo(@44);
+        make.left.equalTo(self.clearButton.mas_right).offset(4.f);
+        make.top.equalTo(self.view).offset(4.f);
+    }];
+    
+    [self.view addSubview:self.redoButton];
+    [self.redoButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.height.and.width.equalTo(@44);
+        make.left.equalTo(self.undoButton.mas_right).offset(4.f);
+        make.top.equalTo(self.view).offset(4.f);
+    }];
+    
     [self.view addSubview:self.toggleDrawingButton];
     [self.toggleDrawingButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.height.and.width.equalTo(@44);
@@ -120,6 +159,13 @@ NSString * const kSaveImageName = @"";
 }
 
 #pragma mark - Actions
+- (void)undoButtonAction {
+    [self.undoManager undo];
+}
+
+- (void)redoButtonAction {
+    [self.undoManager redo];
+}
 
 - (void)clearButtonAction
 {

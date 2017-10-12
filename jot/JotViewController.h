@@ -176,6 +176,16 @@ typedef NS_ENUM(NSUInteger, JotViewState){
 - (void)clearText;
 
 /**
+ * Undo last jot action
+ */
+- (void)undo;
+
+/**
+ * Redo last jot action
+ */
+- (void)redo;
+
+/**
  *  Overlays the drawing and text on the given background image at the full
  *  resolution of the image.
  *
