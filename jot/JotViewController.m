@@ -77,6 +77,8 @@
 
 - (void)dealloc
 {
+    [self.jotUndoManager removeAllActions];
+    self.jotUndoManager = nil;
     self.textEditView.delegate = nil;
     self.drawingContainer.delegate = nil;
 }
